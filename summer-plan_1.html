@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Summer Plan"/>
+<title>Summer Plan</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;padding:0;background:#0A0C10;font-family:-apple-system,BlinkMacSystemFont,'Inter',system-ui,sans-serif;overscroll-behavior:none;}
+  input,textarea,button{font-family:inherit;}
+  ::-webkit-scrollbar{display:none;}
+  input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const{useState,useRef,useEffect}=React;
+
+// ── PASTE YOUR ANTHROPIC API KEY HERE ────────────────────────────
+// Get one free at: https://console.anthropic.com
+const API_KEY = "YOUR_API_KEY_HERE";
+// ─────────────────────────────────────────────────────────────────
+
+const C={bg:"#0A0C10",surface:"#111318",card:"#161B22",border:"#21262D",accent:"#E8B84B",accentDim:"#7A5F1F",green:"#3FB950",blue:"#58A6FF",red:"#F85149",purple:"#BC8CFF",orange:"#FFA657",text:"#E6EDF3",muted:"#7D8590"};
+const CAT_COLOR={gym:C.red,lacrosse:C.green,boxing:C.orange,run:C.blue,yoga:C.purple,physio:C.accent,abs:C.red,hec:C.blue,business:C.green,work:C.muted};
+const CAT_LABEL={gym:"🏋️ Gym",lacrosse:"🥍 Lacrosse",boxing:"🥊 Boxing",run:"🏃 Run",yoga:"🧘 Yoga",physio:"🦵 Physio",abs:"🔥 Abs",hec:"👁️ Hand-Eye",business:"🖨️ 3D Biz",work:"💼 Work"};
+const WEEK=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+const DEFAULT_SCHEDULE={
+  Monday:[
+    {id:"mon-1",time:"7:00 AM",label:"Wake Up — Breakfast & Get Ready",cat:"work",dur:"30 min"},
+    {id:"mon-2",time:"7:30 AM",label:"Physio Stretches (focus: knees)",cat:"physio",dur:"15 min"},
+    {id:"mon-3",time:"7:50 AM",label:"Gym — Push Day",cat:"gym",dur:"1 hr"},
+    {id:"mon-4",time:"9:00 AM",label:"Abs",cat:"abs",dur:"5 min"},
+    {id:"mon-5",time:"9:30 AM",label:"Work + Lacrosse Practice",cat:"work",dur:"varies",note:"Lacrosse at/after work"},
+    {id:"mon-6",time:"6:00 PM",label:"3D Printing Business",cat:"business",dur:"3 hr"},
+  ],
+  Tuesday:[
+    {id:"tue-1",time:"7:00 AM",label:"Wake Up — Breakfast & Get Ready",cat:"work",dur:"30 min"},
+    {id:"tue-2",time:"7:30 AM",label:"Physio Stretches",cat:"physio",dur:"15 min"},
+    {id:"tue-3",time:"7:50 AM",label:"Boxing",cat:"boxing",dur:"30 min"},
+    {id:"tue-4",time:"8:30 AM",label:"Hand-Eye Coordination",cat:"hec",dur:"15 min"},
+    {id:"tue-5",time:"9:00 AM",label:"Lacrosse Wall Work",cat:"lacrosse",dur:"20 min"},
+    {id:"tue-6",time:"10:00 AM",label:"3D Printing Business",cat:"business",dur:"3 hr"},
+    {id:"tue-7",time:"7:00 PM",label:"Yoga",cat:"yoga",dur:"30 min"},
+  ],
+  Wednesday:[
+    {id:"wed-1",time:"7:00 AM",label:"Wake Up — Breakfast & Get Ready",cat:"work",dur:"30 min"},
+    {id:"wed-2",time:"7:30 AM",label:"Physio Stretches",cat:"physio",dur:"15 min"},
+    {id:"wed-3",time:"7:50 AM",label:"Gym — Pull Day",cat:"gym",dur:"1 hr"},
+    {id:"wed-4",time:"9:00 AM",label:"Abs",cat:"abs",dur:"5 min"},
+    {id:"wed-5",time:"9:15 AM",label:"Run",cat:"run",dur:"15 min"},
+    {id:"wed-6",time:"10:00 AM",label:"3D Printing Business",cat:"business",dur:"3 hr"},
+    {id:"wed-7",time:"7:00 PM",label:"Boxing",cat:"boxing",dur:"30 min"},
+  ],
+  Thursday:[
+    {id:"thu-1",time:"7:00 AM",label:"Wake Up — Breakfast & Get Ready",cat:"work",dur:"30 min"},
+    {id:"thu-2",time:"7:30 AM",label:"Physio Stretches",cat:"physio",dur:"15 min"},
+    {id:"thu-3",time:"7:50 AM",label:"Lacrosse Wall Work",cat:"lacrosse",dur:"20 min"},
+    {id:"thu-4",time:"8:20 AM",label:"Hand-Eye Coordination",cat:"hec",dur:"15 min"},
+    {id:"thu-5",time:"10:00 AM",label:"3D Printing Business",cat:"business",dur:"3 hr"},
+    {id:"thu-6",time:"7:00 PM",label:"Yoga",cat:"yoga",dur:"30 min"},
+  ],
+  Friday:[
+    {id:"fri-1",time:"7:00 AM",label:"Wake Up — Breakfast & Get Ready",cat:"work",dur:"30 min"},
+    {id:"fri-2",time:"7:30 AM",label:"Physio Stretches (focus: knees)",cat:"physio",dur:"15 min"},
+    {id:"fri-3",time:"7:50 AM",label:"Gym — Legs (Knee-Safe)",cat:"gym",dur:"1 hr"},
+    {id:"fri-4",time:"9:00 AM",label:"Abs",cat:"abs",dur:"5 min"},
+    {id:"fri-5",time:"9:30 AM",label:"Work + Lacrosse Practice",cat:"work",dur:"varies",note:"Lacrosse at/after work"},
+    {id:"fri-6",time:"6:00 PM",label:"3D Printing Business",cat:"business",dur:"3 hr"},
+  ],
+  Saturday:[
+    {id:"sat-1",time:"7:00 AM",label:"Wake Up — Breakfast & Get Ready",cat:"work",dur:"30 min"},
+    {id:"sat-2",time:"7:30 AM",label:"Physio Stretches",cat:"physio",dur:"15 min"},
+    {id:"sat-3",time:"7:50 AM",label:"Gym — Upper / Arms",cat:"gym",dur:"1 hr"},
+    {id:"sat-4",time:"9:00 AM",label:"Abs",cat:"abs",dur:"5 min"},
+    {id:"sat-5",time:"9:15 AM",label:"Run",cat:"run",dur:"15 min"},
+    {id:"sat-6",time:"9:45 AM",label:"Lacrosse Wall Work",cat:"lacrosse",dur:"20 min"},
+    {id:"sat-7",time:"10:15 AM",label:"Boxing",cat:"boxing",dur:"30 min"},
+    {id:"sat-8",time:"11:00 AM",label:"Hand-Eye Coordination",cat:"hec",dur:"15 min"},
+    {id:"sat-9",time:"12:00 PM",label:"Free Time / Dropshipping",cat:"business",dur:"flex"},
+  ],
+  Sunday:[
+    {id:"sun-1",time:"7:00 AM",label:"Wake Up — Breakfast & Get Ready",cat:"work",dur:"30 min"},
+    {id:"sun-2",time:"7:30 AM",label:"Physio Stretches",cat:"physio",dur:"15 min"},
+    {id:"sun-3",time:"7:50 AM",label:"Lacrosse Wall Work",cat:"lacrosse",dur:"20 min"},
+    {id:"sun-4",time:"9:00 AM",label:"Meal Prep",cat:"business",dur:"2-3 hr",note:"Cook all meals for the week"},
+    {id:"sun-5",time:"10:00 AM",label:"Laundry",cat:"work",dur:"1 hr"},
+    {id:"sun-6",time:"12:00 PM",label:"Dropshipping w/ Brother + Projects",cat:"business",dur:"2 hr"},
+    {id:"sun-7",time:"7:00 PM",label:"Weekly Review",cat:"work",dur:"1 hr",note:"Plan next week"},
+  ],
+};
+
+const SK={schedule:"sp_schedule_v3",checks:"sp_checks_v1",goals:"sp_goals_v1",chat:"sp_chat_v1"};
+function lsGet(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback;}catch{return fallback;}}
+function lsSet(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch{}}
+
+const INITIAL_GOALS=[
+  {id:1,cat:"training",label:"4 gym sessions every week, no skipping",done:false},
+  {id:2,cat:"training",label:"Abs visible by end of summer",done:false},
+  {id:3,cat:"training",label:"Bench press my bodyweight for reps",done:false},
+  {id:4,cat:"training",label:"Knees feel strong and pain-free",done:false},
+  {id:5,cat:"training",label:"Run without knee pain",done:false},
+  {id:6,cat:"lacrosse",label:"Weak hand feels as natural as my strong hand",done:false},
+  {id:7,cat:"lacrosse",label:"Noticeably quicker footwork on the field",done:false},
+  {id:8,cat:"lacrosse",label:"Film myself and fix one major technical flaw",done:false},
+  {id:9,cat:"boxing",label:"Jab-cross-hook-uppercut combo clean and fast",done:false},
+  {id:10,cat:"boxing",label:"3 boxing sessions a week for 6 weeks straight",done:false},
+  {id:11,cat:"business",label:"First $500 month with the 3D printing business",done:false},
+  {id:12,cat:"business",label:"Scale 3D business to $1,000 in a month",done:false},
+  {id:13,cat:"business",label:"Dropshipping store live with brother",done:false},
+  {id:14,cat:"business",label:"First dropshipping sale",done:false},
+  {id:15,cat:"lifestyle",label:"Morning routine locked in for 2 weeks straight",done:false},
+  {id:16,cat:"lifestyle",label:"Meal prep every Sunday for a month",done:false},
+  {id:17,cat:"lifestyle",label:"Hitting protein goals 5+ days a week consistently",done:false},
+];
+const GOAL_CATS={training:{label:"Training",icon:"🏋️",color:C.red},lacrosse:{label:"Lacrosse",icon:"🥍",color:C.green},boxing:{label:"Boxing",icon:"🥊",color:C.orange},business:{label:"Business",icon:"🖨️",color:C.accent},lifestyle:{label:"Lifestyle",icon:"🌅",color:C.blue}};
+
+const MEAL_PREP=[
+  {title:"Freezer Smoothie Bags ×7",icon:"🥤",color:C.blue,prep:"5 min each",desc:"Zip-lock bags, pre-portioned, grab + blend each morning.",ingredients:["1 banana (sliced)","1 cup frozen berries","1 handful spinach","1 tbsp peanut butter","1 scoop protein powder"],note:"Store in freezer. Add 1 cup milk + ice when blending. ~40g protein each."},
+  {title:"Grilled Chicken ×8–10 breasts",icon:"🍗",color:C.accent,prep:"30 min",desc:"Season, bake at 400°F for 25 min. Slice and portion.",ingredients:["8–10 chicken breasts","Olive oil","Salt, pepper, garlic powder","Paprika, Italian seasoning"],note:"Lasts 5 days in fridge."},
+  {title:"Rice Cooker Batch",icon:"🍚",color:C.green,prep:"40 min hands-off",desc:"Cook 4–6 cups dry rice. Portion once cooled.",ingredients:["4–6 cups rice","Water","Optional: chicken broth"],note:"Brown rice = more fibre, slower energy."},
+  {title:"Roasted Vegetables ×4 trays",icon:"🥦",color:C.green,prep:"35 min",desc:"Chop, season, roast at 425°F for 25–30 min.",ingredients:["Broccoli, bell peppers, zucchini","Sweet potato (cubed)","Olive oil, salt, garlic powder"],note:"Rotate veg weekly."},
+  {title:"Hard Boiled Eggs ×12",icon:"🥚",color:C.accent,prep:"12 min",desc:"Boil 12 eggs, refrigerate in shell.",ingredients:["12 eggs","Ice bath to stop cooking"],note:"6–7g protein each. Fast snack."},
+  {title:"Overnight Oats ×5 jars",icon:"🫙",color:C.purple,prep:"10 min",desc:"Layer oats, milk, toppings in mason jars. Fridge overnight.",ingredients:["½ cup oats per jar","¾ cup milk","1 scoop protein powder","Banana, berries, honey"],note:"Pre-gym breakfast. ~35–40g protein."},
+  {title:"Ground Beef / Turkey Bulk Cook",icon:"🥩",color:C.red,prep:"20 min",desc:"Brown 3–4 lbs. Season simply. Store in containers.",ingredients:["3–4 lbs lean ground beef or turkey","Salt, pepper, cumin"],note:"Mix with rice + veg. Add sauces for variety."},
+];
+const DAILY_MEALS=[
+  {meal:"Pre-Workout (7:50 AM)",icon:"⚡",color:C.accent,options:["Overnight oats jar","Banana + 1 tbsp peanut butter","Protein shake with water"],note:"Keep it light — you're lifting right after."},
+  {meal:"Post-Workout / Breakfast",icon:"🍳",color:C.green,options:["Smoothie bag blended","2 eggs + rice + roasted veg","Chicken + rice bowl"],note:"Biggest protein meal. Aim 40–50g protein."},
+  {meal:"Lunch (12:00 PM)",icon:"🍗",color:C.blue,options:["Chicken + rice + veg containers","Ground beef + rice bowl","Wrap with chicken, veg, hot sauce"],note:"Pull from meal prep. Zero cooking."},
+  {meal:"Afternoon Snack (3:00 PM)",icon:"🥜",color:C.orange,options:["2 hard boiled eggs + nuts","Greek yogurt + berries","Protein bar"],note:"Stops binge eating at dinner."},
+  {meal:"Dinner (6:30 PM)",icon:"🍽️",color:C.purple,options:["Ground turkey + sweet potato + broccoli","Chicken stir fry with rice","Salmon + veg"],note:"Vary the protein."},
+  {meal:"Before Bed (9:00 PM)",icon:"🌙",color:C.muted,options:["Greek yogurt","Cottage cheese + fruit","Glass of milk"],note:"Overnight muscle recovery."},
+];
+
+// ── GOALS TAB ────────────────────────────────────────────────────
+function GoalsTab(){
+  const [goals,setGoals]=useState(()=>lsGet(SK.goals,INITIAL_GOALS));
+  const [filterCat,setFilterCat]=useState("all");
+  const [adding,setAdding]=useState(false);
+  const [newText,setNewText]=useState("");
+  const [newCat,setNewCat]=useState("training");
+  const [saved,setSaved]=useState(false);
+  const updateGoals=(fn)=>{setGoals(gs=>{const next=fn(gs);lsSet(SK.goals,next);setSaved(true);setTimeout(()=>setSaved(false),1500);return next;});};
+  const toggle=(id)=>updateGoals(gs=>gs.map(g=>g.id===id?{...g,done:!g.done}:g));
+  const deleteGoal=(id)=>updateGoals(gs=>gs.filter(g=>g.id!==id));
+  const addGoal=()=>{if(!newText.trim())return;updateGoals(gs=>[...gs,{id:Date.now(),cat:newCat,label:newText.trim(),done:false}]);setNewText("");setAdding(false);};
+  const filtered=filterCat==="all"?goals:goals.filter(g=>g.cat===filterCat);
+  const done=goals.filter(g=>g.done).length;
+  const pct=goals.length?Math.round((done/goals.length)*100):0;
+  return(
+    <div>
+      <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:14,padding:18,marginBottom:20}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:10}}>
+          <div>
+            <div style={{display:"flex",alignItems:"center",gap:8}}>
+              <div style={{fontSize:11,color:C.muted,fontWeight:700,letterSpacing:1,textTransform:"uppercase"}}>Summer Progress</div>
+              {saved&&<div style={{fontSize:10,color:C.green,background:`${C.green}15`,padding:"2px 7px",borderRadius:4}}>Saved ✓</div>}
+            </div>
+            <div style={{fontSize:28,fontWeight:800,color:C.accent,lineHeight:1.1,marginTop:2}}>{pct}%</div>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontSize:22,fontWeight:800,color:C.text}}>{done}<span style={{fontSize:14,color:C.muted,fontWeight:500}}>/{goals.length}</span></div>
+            <div style={{fontSize:11,color:C.muted}}>goals completed</div>
+          </div>
+        </div>
+        <div style={{height:8,background:C.border,borderRadius:4,overflow:"hidden"}}>
+          <div style={{height:"100%",width:`${pct}%`,background:`linear-gradient(90deg,${C.accent},${C.green})`,borderRadius:4,transition:"width 0.5s"}}/>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px 16px",marginTop:14}}>
+          {Object.entries(GOAL_CATS).map(([key,cat])=>{const cg=goals.filter(g=>g.cat===key);const cd=cg.filter(g=>g.done).length;const cp=cg.length?Math.round((cd/cg.length)*100):0;return(<div key={key}><div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}><span style={{fontSize:11,color:C.muted}}>{cat.icon} {cat.label}</span><span style={{fontSize:11,color:cat.color,fontWeight:700}}>{cd}/{cg.length}</span></div><div style={{height:4,background:C.border,borderRadius:2,overflow:"hidden"}}><div style={{height:"100%",width:`${cp}%`,background:cat.color,borderRadius:2,transition:"width 0.4s"}}/></div></div>);})}
+        </div>
+      </div>
+      <div style={{display:"flex",gap:5,marginBottom:16,flexWrap:"wrap"}}>
+        <button onClick={()=>setFilterCat("all")} style={{padding:"6px 11px",borderRadius:8,border:`1px solid ${filterCat==="all"?C.accent:C.border}`,background:filterCat==="all"?`${C.accent}20`:C.surface,color:filterCat==="all"?C.accent:C.muted,fontWeight:600,fontSize:12,cursor:"pointer"}}>All</button>
+        {Object.entries(GOAL_CATS).map(([key,cat])=>(<button key={key} onClick={()=>setFilterCat(key)} style={{padding:"6px 11px",borderRadius:8,border:`1px solid ${filterCat===key?cat.color:C.border}`,background:filterCat===key?`${cat.color}20`:C.surface,color:filterCat===key?cat.color:C.muted,fontWeight:600,fontSize:12,cursor:"pointer"}}>{cat.icon} {cat.label}</button>))}
+      </div>
+      <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:16}}>
+        {filtered.map(goal=>{const cat=GOAL_CATS[goal.cat];return(<div key={goal.id} style={{display:"flex",alignItems:"center",gap:10,background:C.card,border:`1px solid ${goal.done?cat.color+"40":C.border}`,borderLeft:`3px solid ${cat.color}`,borderRadius:10,padding:"12px 13px",opacity:goal.done?0.65:1,transition:"all 0.15s"}}>
+          <div onClick={()=>toggle(goal.id)} style={{width:24,height:24,borderRadius:6,border:`2px solid ${goal.done?cat.color:C.border}`,background:goal.done?`${cat.color}25`:"transparent",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",flexShrink:0}}>
+            {goal.done&&<span style={{color:cat.color,fontSize:14,fontWeight:700}}>✓</span>}
+          </div>
+          <div style={{flex:1}}><div style={{fontSize:13,fontWeight:600,color:goal.done?C.muted:C.text,textDecoration:goal.done?"line-through":"none",lineHeight:1.4}}>{goal.label}</div><span style={{fontSize:10,color:cat.color,background:`${cat.color}15`,padding:"1px 6px",borderRadius:4,fontWeight:600,marginTop:3,display:"inline-block"}}>{cat.icon} {cat.label}</span></div>
+          <button onClick={()=>deleteGoal(goal.id)} style={{background:"transparent",border:"none",color:C.border,cursor:"pointer",fontSize:18,padding:"2px 6px",flexShrink:0}} onMouseEnter={e=>e.currentTarget.style.color=C.red} onMouseLeave={e=>e.currentTarget.style.color=C.border}>×</button>
+        </div>);})}
+      </div>
+      {!adding?(<button onClick={()=>setAdding(true)} style={{width:"100%",padding:"11px",borderRadius:10,border:`1px dashed ${C.accent}60`,background:`${C.accent}08`,color:C.accent,fontSize:13,fontWeight:600,cursor:"pointer"}}>+ Add Goal</button>):(
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderRadius:12,padding:16}}>
+          <div style={{fontWeight:700,fontSize:14,marginBottom:12}}>New Goal</div>
+          <textarea value={newText} onChange={e=>setNewText(e.target.value)} placeholder="Describe your goal..." style={{width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:8,padding:"10px 12px",color:C.text,fontSize:13,resize:"none",height:70,boxSizing:"border-box",outline:"none",fontFamily:"inherit"}}/>
+          <div style={{display:"flex",gap:6,marginTop:10,flexWrap:"wrap"}}>{Object.entries(GOAL_CATS).map(([key,cat])=>(<button key={key} onClick={()=>setNewCat(key)} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${newCat===key?cat.color:C.border}`,background:newCat===key?`${cat.color}20`:C.surface,color:newCat===key?cat.color:C.muted,fontSize:12,fontWeight:600,cursor:"pointer"}}>{cat.icon} {cat.label}</button>))}</div>
+          <div style={{display:"flex",gap:8,marginTop:12}}>
+            <button onClick={()=>{setAdding(false);setNewText("");}} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${C.border}`,background:"transparent",color:C.muted,cursor:"pointer",fontSize:13}}>Cancel</button>
+            <button onClick={addGoal} disabled={!newText.trim()} style={{flex:1,padding:"9px",borderRadius:8,border:"none",background:newText.trim()?C.accent:`${C.accent}40`,color:newText.trim()?"#0A0C10":C.muted,fontWeight:700,cursor:newText.trim()?"pointer":"not-allowed",fontSize:13}}>Add Goal</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── DIET TAB ─────────────────────────────────────────────────────
+function DietTab(){
+  const [view,setView]=useState("mealprep");
+  return(
+    <div>
+      <div style={{display:"flex",gap:6,marginBottom:18}}>
+        {[{id:"mealprep",label:"🥡 Sunday Prep"},{id:"daily",label:"📅 Daily Meals"},{id:"macros",label:"💊 Targets"}].map(t=>(<button key={t.id} onClick={()=>setView(t.id)} style={{padding:"7px 12px",borderRadius:8,border:`1px solid ${view===t.id?C.green:C.border}`,background:view===t.id?`${C.green}20`:C.surface,color:view===t.id?C.green:C.muted,fontWeight:600,fontSize:12,cursor:"pointer"}}>{t.label}</button>))}
+      </div>
+      {view==="mealprep"&&<div>
+        <div style={{background:`${C.green}12`,border:`1px solid ${C.green}40`,borderRadius:12,padding:"12px 16px",marginBottom:18}}><div style={{fontWeight:800,color:C.green,fontSize:14,marginBottom:3}}>☀️ Sunday = Meal Prep Day</div><div style={{fontSize:12,color:C.muted,lineHeight:1.6}}>Block 2–3 hours Sunday morning. Prep everything below and eat on autopilot all week.</div></div>
+        {MEAL_PREP.map((item,i)=>(<div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderTop:`3px solid ${item.color}`,borderRadius:12,padding:15,marginBottom:10}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:7}}><div style={{fontWeight:800,fontSize:14}}>{item.icon} {item.title}</div><span style={{fontSize:10,color:C.muted,background:`${C.muted}15`,padding:"2px 7px",borderRadius:4}}>⏱ {item.prep}</span></div>
+          <div style={{fontSize:12,color:C.muted,marginBottom:8}}>{item.desc}</div>
+          {item.ingredients.map((ing,j)=>(<div key={j} style={{fontSize:12,color:C.text,padding:"3px 0",borderBottom:j<item.ingredients.length-1?`1px solid ${C.border}`:"none",display:"flex",gap:7}}><span style={{color:item.color}}>·</span>{ing}</div>))}
+          <div style={{fontSize:11,color:item.color,background:`${item.color}12`,padding:"6px 10px",borderRadius:6,marginTop:8}}>{item.note}</div>
+        </div>))}
+      </div>}
+      {view==="daily"&&<div>
+        <div style={{fontSize:12,color:C.muted,marginBottom:14}}>Pull from Sunday prep all week. Zero cooking Mon–Sat.</div>
+        {DAILY_MEALS.map((meal,i)=>(<div key={i} style={{background:C.card,border:`1px solid ${C.border}`,borderLeft:`3px solid ${meal.color}`,borderRadius:12,padding:14,marginBottom:10}}>
+          <div style={{fontWeight:800,fontSize:14,marginBottom:6}}>{meal.icon} {meal.meal}</div>
+          {meal.options.map((opt,j)=>(<div key={j} style={{fontSize:12,color:C.text,padding:"3px 0",display:"flex",gap:7}}><span style={{color:meal.color}}>›</span>{opt}</div>))}
+          <div style={{fontSize:11,color:C.muted,marginTop:7,fontStyle:"italic"}}>{meal.note}</div>
+        </div>))}
+      </div>}
+      {view==="macros"&&<div>
+        <div style={{background:C.card,border:`1px solid ${C.border}`,borderTop:`3px solid ${C.accent}`,borderRadius:12,padding:18,marginBottom:14}}>
+          <div style={{fontWeight:800,fontSize:14,marginBottom:14}}>🎯 Daily Macro Targets</div>
+          {[{label:"Protein",value:"160–200g",color:C.red,desc:"0.8–1g per lb bodyweight."},{label:"Carbs",value:"200–300g",color:C.accent,desc:"Fuel for training. Don't fear them."},{label:"Fats",value:"60–80g",color:C.blue,desc:"Hormones, joints, recovery."},{label:"Calories",value:"2,800–3,200",color:C.green,desc:"Surplus training days, maintenance rest days."},{label:"Water",value:"1 gallon/day",color:C.blue,desc:"Add electrolytes after lacrosse/boxing."}].map((m,i)=>(<div key={i} style={{display:"flex",alignItems:"flex-start",gap:12,padding:"10px 0",borderBottom:i<4?`1px solid ${C.border}`:"none"}}><div style={{minWidth:70}}><div style={{fontSize:10,color:C.muted,fontWeight:700,letterSpacing:0.5}}>{m.label}</div><div style={{fontSize:16,fontWeight:800,color:m.color,marginTop:2}}>{m.value}</div></div><div style={{fontSize:12,color:C.muted,paddingTop:4,lineHeight:1.5}}>{m.desc}</div></div>))}
+        </div>
+        <div style={{background:`${C.purple}12`,border:`1px solid ${C.purple}40`,borderRadius:12,padding:15}}>
+          <div style={{fontWeight:700,color:C.purple,marginBottom:8}}>💊 Supplements</div>
+          {["Creatine monohydrate — 5g daily","Whey protein — post-workout","Vitamin D3 — 2000–4000 IU daily","Fish oil — joint health, helps knees","Magnesium glycinate — sleep & recovery"].map((s,i)=>(<div key={i} style={{fontSize:12,color:C.muted,padding:"4px 0",display:"flex",gap:7}}><span style={{color:C.purple}}>→</span>{s}</div>))}
+        </div>
+      </div>}
+    </div>
+  );
+}
+
+// ── AI CHAT ───────────────────────────────────────────────────────
+function AIChat({schedule,setSchedule,goals,setGoals}){
+  const [messages,setMessages]=useState(()=>lsGet(SK.chat,[{role:"assistant",content:"Hey! I'm your AI coach. Tell me what you want to change — I can add things to your schedule, move sessions around, update goals, or answer any question about your plan. What's up?"}]));
+  const [input,setInput]=useState("");
+  const [loading,setLoading]=useState(false);
+  const bottomRef=useRef(null);
+  useEffect(()=>{bottomRef.current?.scrollIntoView({behavior:"smooth"})},[messages]);
+
+  const buildSystem=()=>`You are a personal AI coach and schedule manager built into a summer training app. The user is a young athlete with ADHD, sore knees, training for a Creed-like physique, playing lacrosse, learning boxing at home, running a 3D printing business, and starting dropshipping.
+
+CURRENT SCHEDULE:
+${Object.entries(schedule).map(([day,items])=>`${day}:\n${items.map(i=>`  ${i.time} — ${i.label} (${i.dur})`).join("\n")}`).join("\n\n")}
+
+CURRENT GOALS:
+${goals.map(g=>`[${g.done?"✓":"○"}] ${g.label} (${g.cat})`).join("\n")}
+
+You can update the schedule and goals. When you do, include a JSON action block at the END of your message:
+
+For schedule changes:
+<ACTION>{"type":"schedule","data":{"Sunday":[{"id":"sun-1","time":"7:00 AM","label":"Wake Up — Breakfast & Get Ready","cat":"work","dur":"30 min"},...],...}}</ACTION>
+Only include days that changed. Use cat values: gym,lacrosse,boxing,run,yoga,physio,abs,hec,business,work
+Generate new unique ids like "sun-new1","mon-new2" etc for new items.
+
+For goal changes (add/complete/delete):
+<ACTION>{"type":"goals","data":[{"id":1,"cat":"training","label":"...","done":false},...]}</ACTION>
+Include the full updated goals array.
+
+For both at once:
+<ACTION>{"type":"both","schedule":{...},"goals":[...]}</ACTION>
+
+Be concise and confirm what you changed. Use lbs for weights.`;
+
+  const parseAction=(text)=>{
+    try{
+      const match=text.match(/<ACTION>([\s\S]*?)<\/ACTION>/);
+      if(!match)return null;
+      return JSON.parse(match[1].trim());
+    }catch{return null;}
+  };
+
+  const applyAction=(action,currentSchedule,currentGoals)=>{
+    let newSchedule=currentSchedule;
+    let newGoals=currentGoals;
+    if(action.type==="schedule"||action.type==="both"){
+      const update=action.type==="both"?action.schedule:action.data;
+      newSchedule={...currentSchedule,...update};
+      lsSet(SK.schedule,newSchedule);
+      setSchedule(newSchedule);
+    }
+    if(action.type==="goals"||action.type==="both"){
+      const update=action.type==="both"?action.goals:action.data;
+      newGoals=update;
+      lsSet(SK.goals,newGoals);
+      setGoals(newGoals);
+    }
+    return{newSchedule,newGoals};
+  };
+
+  const send=async()=>{
+    if(!input.trim()||loading)return;
+    if(API_KEY==="YOUR_API_KEY_HERE"){
+      setMessages(m=>[...m,{role:"user",content:input},{role:"assistant",content:"⚠️ No API key set. Open the HTML file, find the line that says YOUR_API_KEY_HERE near the top, and replace it with your key from console.anthropic.com"}]);
+      setInput("");return;
+    }
+    const userMsg={role:"user",content:input.trim()};
+    const next=[...messages,userMsg];
+    setMessages(next);setInput("");setLoading(true);
+    try{
+      const res=await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","x-api-key":API_KEY,"anthropic-version":"2023-06-01"},
+        body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1500,system:buildSystem(),messages:next.map(m=>({role:m.role,content:m.content}))}),
+      });
+      const data=await res.json();
+      if(data.error)throw new Error(data.error.message);
+      const raw=data.content?.[0]?.text||"No response.";
+      const action=parseAction(raw);
+      let didUpdate=false;
+      if(action){
+        applyAction(action,schedule,goals);
+        didUpdate=true;
+      }
+      const clean=raw.replace(/<ACTION>[\s\S]*?<\/ACTION>/g,"").trim();
+      const newMessages=[...next,{role:"assistant",content:clean,didUpdate}];
+      setMessages(newMessages);
+      lsSet(SK.chat,newMessages.slice(-30));
+    }catch(e){
+      setMessages(m=>[...m,{role:"assistant",content:`Error: ${e.message}`}]);
+    }
+    setLoading(false);
+  };
+
+  return(
+    <div style={{display:"flex",flexDirection:"column"}}>
+      {API_KEY==="YOUR_API_KEY_HERE"&&(
+        <div style={{background:`${C.red}15`,border:`1px solid ${C.red}50`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:C.red}}>
+          ⚠️ Add your API key to the HTML file to enable AI. Get one free at console.anthropic.com
+        </div>
+      )}
+      <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:12,maxHeight:"50vh",overflowY:"auto",paddingBottom:4}}>
+        {messages.map((m,i)=>(
+          <div key={i} style={{display:"flex",flexDirection:"column",alignItems:m.role==="user"?"flex-end":"flex-start"}}>
+            <div style={{maxWidth:"88%",padding:"10px 13px",borderRadius:12,fontSize:13,lineHeight:1.6,whiteSpace:"pre-wrap",
+              background:m.role==="user"?`${C.accent}22`:C.card,
+              border:`1px solid ${m.role==="user"?C.accentDim:C.border}`,
+              color:m.role==="user"?C.accent:C.text,
+              borderBottomRightRadius:m.role==="user"?2:12,
+              borderBottomLeftRadius:m.role==="assistant"?2:12,
+            }}>{m.content}</div>
+            {m.didUpdate&&<div style={{fontSize:11,color:C.green,marginTop:3,marginLeft:4}}>✓ Plan updated</div>}
+          </div>
+        ))}
+        {loading&&<div style={{display:"flex",justifyContent:"flex-start"}}><div style={{padding:"10px 13px",borderRadius:12,background:C.card,border:`1px solid ${C.border}`,fontSize:13,color:C.muted}}>Thinking...</div></div>}
+        <div ref={bottomRef}/>
+      </div>
+      <div style={{display:"flex",gap:8}}>
+        <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Add laundry Sunday, move boxing to 5 PM..."
+          style={{flex:1,background:C.surface,border:`1px solid ${C.border}`,borderRadius:10,padding:"11px 13px",color:C.text,fontSize:13,outline:"none"}}/>
+        <button onClick={send} disabled={loading||!input.trim()} style={{padding:"11px 16px",borderRadius:10,background:loading||!input.trim()?`${C.accent}40`:C.accent,border:"none",color:"#0A0C10",fontWeight:700,fontSize:13,cursor:loading||!input.trim()?"not-allowed":"pointer"}}>Send</button>
+      </div>
+      <div style={{display:"flex",gap:5,marginTop:8,flexWrap:"wrap"}}>
+        {["Add laundry to Sunday","Move Wednesday boxing to 7:30 PM","Add a goal to drink more water","What should I eat post-workout?"].map(s=>(
+          <button key={s} onClick={()=>setInput(s)} style={{fontSize:11,padding:"4px 9px",borderRadius:6,border:`1px solid ${C.border}`,background:C.surface,color:C.muted,cursor:"pointer"}}>{s}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── MAIN APP ──────────────────────────────────────────────────────
+function App(){
+  const [activeDay,setActiveDay]=useState(WEEK[new Date().getDay()]);
+  const [activeTab,setActiveTab]=useState("schedule");
+  const [schedule,setSchedule]=useState(()=>lsGet(SK.schedule,DEFAULT_SCHEDULE));
+  const [checks,setChecks]=useState(()=>lsGet(SK.checks,{}));
+  const [goals,setGoals]=useState(()=>lsGet(SK.goals,INITIAL_GOALS));
+  const today=new Date().toISOString().slice(0,10);
+  const checkKey=(id)=>`${id}_${today}`;
+  const setCheck=(id,val)=>{setChecks(prev=>{const next={...prev};if(val===null)delete next[checkKey(id)];else next[checkKey(id)]=val;lsSet(SK.checks,next);return next;});};
+  const handleSkip=(item)=>setCheck(item.id,"skip");
+  const TABS=[{id:"schedule",label:"📅 Schedule"},{id:"goals",label:"🎯 Goals"},{id:"diet",label:"🥗 Diet"},{id:"ai",label:"🤖 AI"}];
+  const dayItems=schedule[activeDay]||[];
+  const dayDone=dayItems.filter(it=>checks[checkKey(it.id)]==="done").length;
+  const daySkip=dayItems.filter(it=>checks[checkKey(it.id)]==="skip").length;
+
+  return(
+    <div style={{background:C.bg,minHeight:"100vh",color:C.text}}>
+      <div style={{background:"linear-gradient(135deg,#0A0C10 0%,#161B22 50%,#0A0C10 100%)",borderBottom:`1px solid ${C.border}`,padding:"env(safe-area-inset-top,16px) 16px 16px",paddingTop:`max(env(safe-area-inset-top),16px)`}}>
+        <div style={{fontSize:10,letterSpacing:3,color:C.accentDim,fontWeight:700,marginBottom:4,textTransform:"uppercase"}}>Summer 2026</div>
+        <h1 style={{fontSize:28,fontWeight:800,margin:0,letterSpacing:-1,lineHeight:1.1}}>Your Master Plan</h1>
+        <p style={{color:C.muted,marginTop:4,fontSize:12,marginBottom:0}}>Physique · Lacrosse · Business · Boxing</p>
+        <div style={{display:"flex",gap:6,marginTop:14,flexWrap:"wrap"}}>
+          {TABS.map(tab=>(<button key={tab.id} onClick={()=>setActiveTab(tab.id)} style={{padding:"8px 14px",borderRadius:8,border:`1px solid ${activeTab===tab.id?C.accent:C.border}`,background:activeTab===tab.id?`${C.accent}22`:C.surface,color:activeTab===tab.id?C.accent:C.muted,fontWeight:600,fontSize:13,cursor:"pointer"}}>{tab.label}</button>))}
+        </div>
+      </div>
+      <div style={{padding:"18px 14px 40px",maxWidth:860,margin:"0 auto"}}>
+        {activeTab==="schedule"&&(
+          <div>
+            <div style={{display:"flex",gap:5,marginBottom:14,flexWrap:"wrap"}}>
+              {WEEK.map(day=>{
+                const isWork=day==="Monday"||day==="Friday";
+                const isActive=day===activeDay;
+                const isToday=day===WEEK[new Date().getDay()];
+                const its=schedule[day]||[];
+                const dd=its.filter(it=>checks[checkKey(it.id)]==="done").length;
+                const allDone=its.length>0&&dd===its.length;
+                return(<button key={day} onClick={()=>setActiveDay(day)} style={{padding:"8px 12px",borderRadius:10,border:`1px solid ${isActive?C.accent:allDone?C.green:isToday?C.blue:C.border}`,background:isActive?`${C.accent}20`:allDone?`${C.green}12`:C.card,color:isActive?C.accent:allDone?C.green:isToday?C.blue:C.text,fontWeight:isActive||isToday?700:500,fontSize:12,cursor:"pointer",position:"relative"}}>
+                  {day.slice(0,3)}
+                  {isToday&&!isActive&&<span style={{position:"absolute",top:-3,right:-3,width:6,height:6,borderRadius:"50%",background:C.blue,border:`2px solid ${C.bg}`}}/>}
+                  {allDone&&<span style={{position:"absolute",top:-3,right:-3,width:6,height:6,borderRadius:"50%",background:C.green,border:`2px solid ${C.bg}`}}/>}
+                </button>);
+              })}
+            </div>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:12}}>
+              <h2 style={{margin:0,fontSize:20,fontWeight:800}}>{activeDay}</h2>
+              {dayItems.length>0&&<div style={{fontSize:12,color:C.muted}}><span style={{color:C.green,fontWeight:700}}>{dayDone}</span>{daySkip>0&&<span style={{color:C.red,fontWeight:700,marginLeft:6}}>{daySkip} skipped</span>}<span style={{marginLeft:2}}>/ {dayItems.length}</span></div>}
+            </div>
+            {activeDay==="Friday"&&<div style={{background:`${C.orange}12`,border:`1px solid ${C.orange}40`,borderRadius:8,padding:"8px 12px",fontSize:12,color:C.orange,marginBottom:12}}>🦵 Leg day — knee-safe. Do physio stretches first.</div>}
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {dayItems.map((item)=>{
+                const key=checkKey(item.id);
+                const status=checks[key];
+                const isDone=status==="done";
+                const isSkip=status==="skip";
+                const color=CAT_COLOR[item.cat]||C.accent;
+                return(<div key={item.id} style={{display:"flex",alignItems:"flex-start",gap:10,background:isDone?`${C.green}08`:isSkip?`${C.red}08`:C.card,border:`1px solid ${isDone?C.green+"40":isSkip?C.red+"40":C.border}`,borderLeft:`3px solid ${isDone?C.green:isSkip?C.red:color}`,borderRadius:10,padding:"12px 13px",opacity:isSkip?0.6:1,transition:"all 0.15s"}}>
+                  <div style={{minWidth:56,fontSize:10,fontWeight:700,color:isDone?C.green:isSkip?C.red:C.muted,paddingTop:2,flexShrink:0}}>{item.time}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontWeight:700,fontSize:13,textDecoration:isSkip?"line-through":"none",color:isSkip?C.muted:C.text}}>{item.label}</div>
+                    <div style={{display:"flex",gap:5,marginTop:3,flexWrap:"wrap"}}>
+                      <span style={{fontSize:10,fontWeight:600,color,background:`${color}18`,padding:"1px 6px",borderRadius:4}}>{CAT_LABEL[item.cat]||item.cat}</span>
+                      <span style={{fontSize:10,color:C.muted,background:`${C.muted}18`,padding:"1px 6px",borderRadius:4}}>{item.dur}</span>
+                    </div>
+                    {item.note&&<div style={{fontSize:11,color:C.muted,marginTop:4,fontStyle:"italic"}}>{item.note}</div>}
+                  </div>
+                  {!isDone&&!isSkip&&(<div style={{display:"flex",gap:6,flexShrink:0}}>
+                    <button onClick={()=>setCheck(item.id,"done")} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${C.green}`,background:`${C.green}15`,color:C.green,fontSize:11,fontWeight:700,cursor:"pointer"}}>Done</button>
+                    <button onClick={()=>handleSkip(item)} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${C.border}`,background:"transparent",color:C.muted,fontSize:11,fontWeight:700,cursor:"pointer"}}>Skip</button>
+                  </div>)}
+                  {isDone&&(<div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><span style={{fontSize:16,color:C.green}}>✓</span><button onClick={()=>setCheck(item.id,null)} style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.muted,fontSize:10,cursor:"pointer"}}>Undo</button></div>)}
+                  {isSkip&&(<div style={{display:"flex",alignItems:"center",gap:6,flexShrink:0}}><span style={{fontSize:12,color:C.red}}>✗</span><button onClick={()=>setCheck(item.id,null)} style={{padding:"3px 8px",borderRadius:6,border:`1px solid ${C.border}`,background:"transparent",color:C.muted,fontSize:10,cursor:"pointer"}}>Undo</button></div>)}
+                </div>);
+              })}
+            </div>
+          </div>
+        )}
+        {activeTab==="goals"&&<GoalsTab/>}
+        {activeTab==="diet"&&<DietTab/>}
+        {activeTab==="ai"&&(
+          <div>
+            <div style={{background:`${C.accent}12`,border:`1px solid ${C.accentDim}`,borderRadius:12,padding:"12px 16px",marginBottom:18}}>
+              <div style={{fontWeight:800,color:C.accent,fontSize:14,marginBottom:3}}>🤖 AI Coach</div>
+              <div style={{fontSize:12,color:C.muted}}>Tell me to change anything — schedule, goals, training advice. I'll update your plan instantly.</div>
+            </div>
+            <AIChat schedule={schedule} setSchedule={setSchedule} goals={goals} setGoals={setGoals}/>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
